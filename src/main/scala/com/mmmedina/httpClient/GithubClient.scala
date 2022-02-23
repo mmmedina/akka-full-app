@@ -18,7 +18,7 @@ import scala.concurrent.duration._
 
 class GithubClient(implicit system: ActorSystem[Nothing]) extends JsonFormats with SprayJsonSupport {
 
-  val githubToken: String = system.settings.config.getString("full-akka-app.github.token")
+  val githubToken: String = s"Token ${system.settings.config.getString("full-akka-app.github.token")}"
   def http: HttpExt       = Http() // overridable method
   val log: Logger         = LoggerFactory.getLogger("c.s.utils.GithubClient$")
 
@@ -55,6 +55,7 @@ class GithubClient(implicit system: ActorSystem[Nothing]) extends JsonFormats wi
         case response                                      =>
           responseHandler(response)
       }
+      .log("contributorsRepository")
       .runWith(Sink.head)
       .flatten
   }

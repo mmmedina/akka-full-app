@@ -4,7 +4,7 @@ import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.{ActorRef, ActorSystem}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.HttpResponse
-import akka.http.scaladsl.model.StatusCodes.{Conflict, Forbidden, InternalServerError, NotFound}
+import akka.http.scaladsl.model.StatusCodes.{Conflict, Forbidden, InternalServerError, NotFound, Unauthorized}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{ExceptionHandler, Route}
 import akka.util.Timeout
@@ -29,7 +29,7 @@ class OrganizationsRoutes(contributorRegistry: ActorRef[OrganizationActor.Comman
       case ex: RuntimeException       =>
         complete(HttpResponse(Conflict, entity = s"message: ${ex.getMessage}"))
       case ex: IllegalAccessException =>
-        complete(HttpResponse(Forbidden, entity = s"message: ${ex.getMessage}"))
+        complete(HttpResponse(Unauthorized, entity = s"message: ${ex.getMessage}"))
       case ex: InterruptedException   =>
         complete(HttpResponse(InternalServerError, entity = s"message: ${ex.getMessage}"))
     }
