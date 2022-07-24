@@ -16,7 +16,6 @@ lazy val root = (project in file(".")).settings(
     "com.typesafe.akka" %% "akka-stream"              % akkaVersion,
     "ch.qos.logback"     % "logback-classic"          % "1.2.10",
     "org.scalatestplus" %% "mockito-3-4"              % "3.2.10.0"      % "test",
-    "com.typesafe.akka" %% "akka-http-testkit"        % akkaHttpVersion % Test,
     "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion     % Test,
     "org.scalatest"     %% "scalatest"                % "3.2.9"         % Test,
     "com.typesafe.akka" %% "akka-stream"              % akkaVersion,

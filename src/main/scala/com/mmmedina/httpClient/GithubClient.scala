@@ -7,11 +7,13 @@ import akka.http.scaladsl.model.headers.{Link, RawHeader}
 import akka.http.scaladsl.model.{HttpMethods, HttpRequest, HttpResponse, Uri}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.{Http, HttpExt}
+import akka.stream.{ActorAttributes, Supervision}
 import akka.stream.scaladsl.{Sink, Source}
 import com.mmmedina.models.{Contributor, Repository}
 import com.mmmedina.serialization.JsonFormats
 import org.slf4j.{Logger, LoggerFactory}
 
+import java.util.NoSuchElementException
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -49,9 +51,6 @@ class GithubClient(implicit system: ActorSystem[Nothing]) extends JsonFormats wi
       .map {
         case HttpResponse(StatusCodes.OK, _, entity, _)    =>
           Unmarshal(entity).to[Seq[Contributor]]
-        case HttpResponse(StatusCodes.NO_CONTENT, _, _, _) =>
-          log.warn("No content response received")
-          Future(Seq[Contributor]())
         case response                                      =>
           responseHandler(response)
       }
@@ -62,19 +61,28 @@ class GithubClient(implicit system: ActorSystem[Nothing]) extends JsonFormats wi
 
   /////////////////////////// private util methods ///////////////////////////
 
-  private def responseHandler(response: HttpResponse) = response match {
+  private def responseHandler(response: HttpResponse): Exception = response match {
     case HttpResponse(StatusCodes.NOT_FOUND, _, _, _)    =>
       val message = s"Contributor cannot be found"
       log.warn(s"$message. Status code: ${StatusCodes.NOT_FOUND}")
-      throw new NoSuchElementException(message)
+      new NoSuchElementException(message)
     case HttpResponse(StatusCodes.UNAUTHORIZED, _, _, _) =>
       val message = s"Error trying to access the resource"
       log.warn(s"$message. Status code: ${StatusCodes.UNAUTHORIZED}")
-      throw new IllegalAccessException(message)
+      new IllegalAccessException(message)
+    case HttpResponse(StatusCodes.NO_CONTENT, _, _, _) =>
+      val message = s"No content response received"
+      log.warn(s"$message. Status code: ${StatusCodes.NO_CONTENT}")
+      new TypeNotPresentException(message, new IllegalAccessException)
     case HttpResponse(code, _, _, _)                     =>
       val message = s"Unexpected Error"
       log.warn(s"$message. Status code: $code")
-      throw new InterruptedException(message)
+      new InterruptedException(message)
+  }
+
+  private val supervisionDecider: Supervision.Decider = {
+    case _: TypeNotPresentException => Supervision.Resume
+    case _: NoSuchElementException => Supervision.Stop
   }
 
   private def nextUri(r: HttpResponse): Seq[Uri] = for {

@@ -34,7 +34,7 @@ object OrganizationActor extends JsonFormats with SprayJsonSupport {
 
   def apply(client: GithubClient): Behavior[Command] = Behaviors.setup { context =>
     implicit val system: ActorSystem[Nothing] = context.system
-    implicit val timeout: Timeout             = Timeout(10.seconds)
+    implicit val timeout: Timeout             = Timeout(80.seconds)
     implicit val scheduler: Scheduler         = context.system.scheduler
 
     val repositoriesActor = context.spawn(RepositoriesActor(client), "repositories")
