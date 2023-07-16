@@ -7,6 +7,7 @@ import akka.http.scaladsl.model.headers.{Link, RawHeader}
 import akka.http.scaladsl.model.{HttpMethods, HttpRequest, HttpResponse, Uri}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.{Http, HttpExt}
+import akka.stream.{ActorAttributes, Supervision}
 import akka.stream.scaladsl.{Sink, Source}
 import com.mmmedina.models.{Contributor, Repository}
 import com.mmmedina.serialization.JsonFormats
@@ -25,15 +26,32 @@ class GithubClient(implicit system: ActorSystem[Nothing]) extends JsonFormats wi
   def getRepositories(organizationName: String): Future[Seq[Repository]] = {
     val uri     = s"https://api.github.com/orgs/$organizationName/repos"
     val request = HttpRequest(uri = uri)
-      .withHeaders(RawHeader("Authorization", githubToken))
+      .withHeaders(RawHeader("Authorization", s"Token $githubToken"))
+
+    val testSupervisionDecider: Supervision.Decider = {
+      case ex: InterruptedException =>
+        log.warn(s"Exception INTERRUPTED run time exception ${ex.getMessage}")
+        Supervision.Stop
+      case ex: NoSuchElementException =>
+        log.warn("Exception NO SUCH ELEMENT occurred and stopping stream", ex)
+        Supervision.Stop
+      case ex: UnsupportedOperationException =>
+        log.warn("Exception UNSOPORTED occurred and stopping stream", ex)
+        Supervision.Stop
+      case ex: RuntimeException =>
+        log.warn("Exception RUN TIME occurred and stopping stream", ex)
+        Supervision.Stop
+    }
+
     Source
       .unfoldAsync[Option[HttpRequest], HttpResponse](Some(request))(chainRequests)
       .map {
         case HttpResponse(StatusCodes.OK, _, entity, _) =>
-          Unmarshal(entity).to[Seq[Repository]]
+        Unmarshal(entity).to[Seq[Repository]]
         case response                                   =>
-          responseHandler(response)
+        responseHandler(response)
       }
+      .withAttributes(ActorAttributes.supervisionStrategy(testSupervisionDecider))
       .runWith(Sink.seq)
       .flatMap(value => Future.sequence(value).map(_.flatten))
   }
@@ -43,7 +61,7 @@ class GithubClient(implicit system: ActorSystem[Nothing]) extends JsonFormats wi
     Source
       .single(
         HttpRequest(uri = uri)
-          .withHeaders(RawHeader("Authorization", githubToken))
+          .withHeaders(RawHeader("Authorization", s"Token $githubToken"))
       )
       .via(Http().outgoingConnectionHttps("api.github.com"))
       .map {
@@ -66,14 +84,18 @@ class GithubClient(implicit system: ActorSystem[Nothing]) extends JsonFormats wi
       val message = s"Contributor cannot be found"
       log.warn(s"$message. Status code: ${StatusCodes.NOT_FOUND}")
       throw new NoSuchElementException(message)
+    case HttpResponse(StatusCodes.FORBIDDEN, _, _, _)    =>
+      val message = s"Forbidden access error"
+      log.warn(s"$message. Status code: ${StatusCodes.FORBIDDEN}")
+      throw new InterruptedException(message)
     case HttpResponse(StatusCodes.UNAUTHORIZED, _, _, _) =>
       val message = s"Error trying to access the resource"
       log.warn(s"$message. Status code: ${StatusCodes.UNAUTHORIZED}")
-      throw new IllegalAccessException(message)
+      throw new UnsupportedOperationException(message)
     case HttpResponse(code, _, _, _)                     =>
       val message = s"Unexpected Error"
       log.warn(s"$message. Status code: $code")
-      throw new InterruptedException(message)
+      throw new RuntimeException(message)
   }
 
   private def nextUri(r: HttpResponse): Seq[Uri] = for {
@@ -87,7 +109,7 @@ class GithubClient(implicit system: ActorSystem[Nothing]) extends JsonFormats wi
     nextUri(r).headOption.map(next => HttpRequest(HttpMethods.GET, next))
 
   private def convertToStrict(r: HttpResponse): Future[HttpResponse] = {
-    r.entity.toStrict(10.minutes).map(e => r.withEntity(e))
+    r.entity.toStrict(60.seconds).map(e => r.withEntity(e)) // TODO put this into conf file
   }
 
   private def chainRequests(reqOption: Option[HttpRequest]): Future[Option[(Option[HttpRequest], HttpResponse)]] =

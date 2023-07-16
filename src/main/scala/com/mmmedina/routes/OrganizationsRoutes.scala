@@ -4,7 +4,7 @@ import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.{ActorRef, ActorSystem}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.HttpResponse
-import akka.http.scaladsl.model.StatusCodes.{Conflict, Forbidden, InternalServerError, NotFound}
+import akka.http.scaladsl.model.StatusCodes.{Conflict, Forbidden, InternalServerError, NotFound, Unauthorized}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{ExceptionHandler, Route}
 import akka.util.Timeout
@@ -26,30 +26,31 @@ class OrganizationsRoutes(contributorRegistry: ActorRef[OrganizationActor.Comman
     ExceptionHandler {
       case ex: NoSuchElementException =>
         complete(HttpResponse(NotFound, entity = s"message: ${ex.getMessage}"))
-      case ex: RuntimeException       =>
-        complete(HttpResponse(Conflict, entity = s"message: ${ex.getMessage}"))
-      case ex: IllegalAccessException =>
-        complete(HttpResponse(Forbidden, entity = s"message: ${ex.getMessage}"))
       case ex: InterruptedException   =>
         complete(HttpResponse(InternalServerError, entity = s"message: ${ex.getMessage}"))
+      case ex: UnsupportedOperationException =>
+        complete(HttpResponse(Unauthorized, entity = s"message: ${ex.getMessage}"))
+      case ex: RuntimeException       =>
+        complete(HttpResponse(Conflict, entity = s"message: ${ex.getMessage}"))
     }
 
   // endpoints
-  val organizationRoutes: Route =
-    pathPrefix("org") {
-      concat(path(Segment / "contributors") { organizationName =>
-        concat(get {
-          rejectEmptyResponse {
-            onComplete(contributorRegistry.askWithStatus(GetContributors(organizationName, _))) {
-              case Success(dto)   =>
-                complete(dto.contributors)
-              case Failure(error) =>
-                handleExceptions(myExceptionHandler) {
-                  complete(error)
-                }
+  val organizationRoutes: Route = {
+    handleExceptions(myExceptionHandler) {
+      pathPrefix("org") {
+        concat(path(Segment / "contributors") { organizationName =>
+          concat(get {
+            rejectEmptyResponse {
+              onComplete(contributorRegistry.askWithStatus(GetContributors(organizationName, _))) {
+                case Success(dto)   =>
+                  complete(dto.contributors)
+                case Failure(error) =>
+                  throw error
+              }
             }
-          }
+          })
         })
-      })
+      }
     }
+  }
 }
