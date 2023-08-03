@@ -23,19 +23,20 @@ object OrganizationActor extends JsonFormats with SprayJsonSupport {
 
   sealed trait Command
 
-  final case class GetContributors(organizationName: String, replyTo: ActorRef[StatusReply[ContributorsDTO]]) extends Command
+  final case class GetContributors(organizationName: String, replyTo: ActorRef[StatusReply[ContributorsDTO]])
+      extends Command
 
   private final case class GroupFilterAndSortContributors(
-  contributors: Contributors,
-  replyTo: ActorRef[StatusReply[ContributorsDTO]]
+      contributors: Contributors,
+      replyTo: ActorRef[StatusReply[ContributorsDTO]]
   ) extends Command
 
-  private final case class ErrorHandler(error: Throwable, replyTo: ActorRef[StatusReply[ContributorsDTO]]) extends Command
+  private final case class ErrorHandler(error: Throwable, replyTo: ActorRef[StatusReply[ContributorsDTO]])
+      extends Command
 
   def apply(client: GithubClient): Behavior[Command] = Behaviors.setup { context =>
-    implicit val system: ActorSystem[Nothing] = context.system
-    implicit val timeout: Timeout             = Timeout(60.seconds) // TODO move to configurations
-    implicit val scheduler: Scheduler         = context.system.scheduler
+    implicit val timeout: Timeout     = Timeout(60.seconds) // TODO move to configurations
+    implicit val scheduler: Scheduler = context.system.scheduler
 
     val repositoriesActor = context.spawn(RepositoriesActor(client), "repositories")
     val contributorsActor = context.spawn(ContributorsActor(client), "contributors")

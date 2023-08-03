@@ -1,7 +1,7 @@
 package com.mmmedina.actors.githubAPI
 
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
+import akka.actor.typed.{ActorRef, Behavior}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.pattern.StatusReply
 import akka.pattern.StatusReply.Error
@@ -25,14 +25,15 @@ object ContributorsActor extends JsonFormats with SprayJsonSupport {
 
   private final case class ErrorReply(error: Throwable, replyTo: ActorRef[StatusReply[Contributors]]) extends Command
 
-  private final case class ReplyWithContributors(contributors: Seq[Contributor], replyTo: ActorRef[StatusReply[Contributors]])
-      extends Command
+  private final case class ReplyWithContributors(
+      contributors: Seq[Contributor],
+      replyTo: ActorRef[StatusReply[Contributors]]
+  ) extends Command
 
   case class Contributors(contributors: Seq[Contributor])
 
   def apply(githubAPI: GithubClient): Behavior[Command] = {
     Behaviors.setup { context =>
-      implicit val system: ActorSystem[Nothing] = context.system
       Behaviors.receiveMessage {
         case GetByRepo(organization, result, replyTo) =>
           context.log.info(s"Searching for contributors by organization name: $organization")

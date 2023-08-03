@@ -1,7 +1,7 @@
 package com.mmmedina.actors.githubAPI
 
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
+import akka.actor.typed.{ActorRef, Behavior}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.pattern.StatusReply
 import akka.pattern.StatusReply.Error
@@ -28,7 +28,6 @@ object RepositoriesActor extends JsonFormats with SprayJsonSupport {
 
   def apply(githubAPI: GithubClient): Behavior[Command] = {
     Behaviors.setup { context =>
-      implicit val system: ActorSystem[Nothing] = context.system
       Behaviors.receiveMessage {
 
         case GetByOrganization(organizationName, replyTo) =>
