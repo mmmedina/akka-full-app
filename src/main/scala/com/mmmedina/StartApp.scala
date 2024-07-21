@@ -16,7 +16,7 @@ object StartApp {
   private def startHttpServer(routes: Route)(implicit system: ActorSystem[_]): Unit = {
     import system.executionContext
 
-    val futureBinding = Http().newServerAt("localhost", 8083).bind(routes)
+    val futureBinding = Http().newServerAt("0.0.0.0", 8083).bind(routes)
     futureBinding.onComplete {
       case Success(binding) =>
         val address = binding.localAddress
@@ -34,7 +34,7 @@ object StartApp {
       context.watch(organizationActor)
 
       val routes = new OrganizationsRoutes(organizationActor)(context.system)
-      startHttpServer(routes.organizationRoutes)(context.system)
+      startHttpServer(routes.applicationRoutes)(context.system)
 
       Behaviors.empty
     }

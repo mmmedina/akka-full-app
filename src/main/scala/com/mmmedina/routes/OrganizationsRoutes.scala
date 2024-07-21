@@ -35,22 +35,33 @@ class OrganizationsRoutes(contributorRegistry: ActorRef[OrganizationActor.Comman
     }
 
   // endpoints
-  val organizationRoutes: Route = {
-    handleExceptions(myExceptionHandler) {
-      pathPrefix("org") {
-        concat(path(Segment / "contributors") { organizationName =>
-          concat(get {
-            rejectEmptyResponse {
-              onComplete(contributorRegistry.askWithStatus(GetContributors(organizationName, _))) {
-                case Success(dto)   =>
-                  complete(dto.contributors)
-                case Failure(error) =>
-                  throw error
-              }
-            }
-          })
-        })
+  val healthRoute: Route =
+    path("health") {
+      get {
+        complete("OK")
       }
+    }
+
+  val contributorsRoute: Route = {
+    pathPrefix("org") {
+      concat(path(Segment / "contributors") { organizationName =>
+        concat(get {
+          rejectEmptyResponse {
+            onComplete(contributorRegistry.askWithStatus(GetContributors(organizationName, _))) {
+              case Success(dto)   =>
+                complete(dto.contributors)
+              case Failure(error) =>
+                throw error
+            }
+          }
+        })
+      })
+    }
+  }
+
+  val applicationRoutes: Route = {
+    handleExceptions(myExceptionHandler) {
+      concat(healthRoute, contributorsRoute)
     }
   }
 }

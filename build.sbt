@@ -1,5 +1,5 @@
-lazy val akkaHttpVersion = "10.5.0"
-lazy val akkaVersion     = "2.8.3"
+lazy val akkaHttpVersion = "10.5.3"
+lazy val akkaVersion     = "2.8.5"
 
 lazy val root = (project in file(".")).settings(
   inThisBuild(
@@ -62,16 +62,17 @@ lazy val root = (project in file(".")).settings(
   ),
   name := "full-akka-app",
   libraryDependencies ++= Seq(
-    "com.typesafe.akka" %% "akka-http"                % akkaHttpVersion,
-    "com.typesafe.akka" %% "akka-http-spray-json"     % akkaHttpVersion,
-    "com.typesafe.akka" %% "akka-actor-typed"         % akkaVersion,
-    "com.typesafe.akka" %% "akka-stream"              % akkaVersion,
-    "ch.qos.logback"     % "logback-classic"          % "1.4.7",
-    "org.scalatestplus" %% "mockito-3-4"              % "3.2.10.0"      % "test",
-    "com.typesafe.akka" %% "akka-http-testkit"        % akkaHttpVersion % Test,
-    "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion     % Test,
-    "org.scalatest"     %% "scalatest"                % "3.2.15"         % Test,
-    "com.typesafe.akka" %% "akka-stream"              % akkaVersion
+    "com.typesafe.akka" %% "akka-http"                    % akkaHttpVersion,
+    "com.typesafe.akka" %% "akka-http-spray-json"         % akkaHttpVersion,
+    "com.typesafe.akka" %% "akka-actor-typed"             % akkaVersion,
+    "com.typesafe.akka" %% "akka-stream"                  % akkaVersion,
+    "ch.qos.logback"     % "logback-classic"              % "1.5.6",
+    "org.scalatestplus" %% "mockito-3-4"                  % "3.2.10.0"      % "test",
+    "com.typesafe.akka" %% "akka-http-testkit"            % akkaHttpVersion % Test,
+    "com.typesafe.akka" %% "akka-actor-testkit-typed"     % akkaVersion     % Test,
+    "org.scalatest"     %% "scalatest"                    % "3.2.18"        % Test,
+    "com.typesafe.akka" %% "akka-stream"                  % akkaVersion,
+    "fr.davit"          %% "akka-http-metrics-prometheus" % "1.7.1"
   )
 )
 

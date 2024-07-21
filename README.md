@@ -21,11 +21,12 @@ by organization name from the [Github API](https://docs.github.com/en/rest)
 1 sbt clean compile
 2 sbt run
 ```
-This will start the project on localhost:8080
+This will start the project on localhost:8083
 
 To retrieve all contributors of an organization try a GET request to:
-localhost:8080/org/*ORGANIZATION_NAME*/contributors
+localhost:8083/org/*ORGANIZATION_NAME*/contributors
 
 >### Preconditions to execute request
 - A valid organization name
-- Set your own valid Github Token in **GH_TOKEN** enviroment variable
+- Set your own valid Github Token in **GH_TOKEN** enviroment variable:
+*export GH_TOKEN=ghp_XXXXXXXXXXXX*
